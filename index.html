@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M-APEC 2026 Dashboard | Resultados de Postulantes</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#35B6B4',   /* Pantone 7465 C */
+                        secondary: '#D7B369', /* Pantone 7509 C */
+                        tertiary: '#EFEBDB',  /* Pantone Pastel 663 C */
+                        corporateBg: '#F8F9FA',
+                        corporateText: '#2D3748'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- SheetJS for Excel Parsing -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    
+    <!-- Chart.js for Visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Google Charts for Map -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script>
+        google.charts.load('current', {
+            'packages':['geochart'],
+        });
+    </script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F4F6F8; /* Neutro corporativo */
+            color: #2D3748;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* Corporate Cards */
+        .corporate-card {
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        .corporate-card:hover {
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05), 0 10px 15px -3px rgba(0,0,0,0.05);
+            transform: translateY(-2px);
+        }
+
+        /* Drag and Drop Zone */
+        #drop-zone {
+            border: 2px dashed #CBD5E1;
+            background-color: #F8FAFC;
+            transition: all 0.3s ease;
+        }
+        #drop-zone.dragover {
+            border-color: #35B6B4;
+            background-color: #E6F6F6;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #F1F5F9; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+        /* Animations */
+        .fade-in { animation: fadeIn 0.6s ease-out forwards; }
+        .slide-up { animation: slideUp 0.5s ease-out forwards; opacity: 0; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
+
+        table { border-collapse: separate; border-spacing: 0; }
+        th { border-bottom: 2px solid #E2E8F0; }
+        td { border-bottom: 1px solid #F1F5F9; }
+        tr:hover td { background: #F8FAFC; }
+    </style>
+</head>
+<body>
+
+    <!-- Upload Screen -->
+    <div id="upload-screen" class="min-h-screen flex items-center justify-center p-6 relative z-10 fade-in">
+        <div class="corporate-card w-full max-w-2xl p-12 text-center">
+            <div class="mb-8 flex flex-col items-center">
+                <!-- Placeholder for Logo -->
+                <div class="mb-6 flex justify-center items-center h-24">
+                    <img src="logo_apec.png" alt="APEC Ciudadano Logo" class="h-full object-contain" onerror="this.style.display='none'; document.getElementById('alt-title').style.display='block';">
+                    <h1 id="alt-title" class="text-4xl font-bold text-primary hidden">APEC Ciudadano</h1>
+                </div>
+                <h2 class="text-2xl font-semibold text-slate-800">M-APEC 2026</h2>
+                <p class="text-slate-500 mt-2">Plataforma de Análisis y Resultados de Postulantes</p>
+            </div>
+            
+            <div id="drop-zone" class="rounded-xl p-10 cursor-pointer flex flex-col items-center justify-center group">
+                <div class="w-16 h-16 bg-white border border-slate-200 rounded-full flex items-center justify-center mb-4 group-hover:border-primary group-hover:text-primary transition-colors duration-300 shadow-sm text-slate-400">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-slate-700 mb-1">Carga tu archivo Excel</h3>
+                <p class="text-slate-500 text-sm mb-6">Arrastra el archivo <span class="font-semibold text-slate-700">RESULTADOS M-APEC.xlsx</span> aquí.</p>
+                <input type="file" id="file-input" class="hidden" accept=".xlsx, .xls, .csv">
+                <button onclick="document.getElementById('file-input').click()" class="bg-primary hover:bg-[#2A9190] text-white px-6 py-2.5 rounded-lg font-medium transition-colors duration-200 shadow-sm">
+                    Seleccionar Archivo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Screen (Hidden by default) -->
+    <div id="dashboard-screen" class="hidden min-h-screen p-6 lg:p-8 relative z-10 max-w-7xl mx-auto">
+        
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 corporate-card p-6 slide-up">
+            <div class="flex items-center gap-6">
+                <img src="logo_apec.png" alt="APEC Logo" class="h-12 object-contain" onerror="this.style.display='none';">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-800">Inteligencia de Datos M-APEC</h1>
+                    <p class="text-slate-500 text-sm mt-1">Análisis de Postulantes Oficiales</p>
+                </div>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3 mt-4 md:mt-0">
+                <button onclick="exportCleanData()" class="px-5 py-2 rounded-lg bg-primary hover:bg-[#2A9190] text-white font-medium transition-colors flex items-center justify-center gap-2 shadow-sm text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Descargar Base Uniformizada
+                </button>
+                <button onclick="location.reload()" class="px-5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium transition-colors flex items-center justify-center gap-2 text-sm shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Cargar Otro
+                </button>
+            </div>
+        </header>
+
+        <!-- Key Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="corporate-card p-6 slide-up delay-100 border-l-4 border-l-primary">
+                <h3 class="text-slate-500 font-semibold text-xs mb-2 uppercase tracking-wider">Total Postulantes</h3>
+                <p class="text-3xl font-bold text-slate-800" id="stat-total">0</p>
+            </div>
+            <div class="corporate-card p-6 slide-up delay-100 border-l-4 border-l-secondary">
+                <h3 class="text-slate-500 font-semibold text-xs mb-2 uppercase tracking-wider">Universidades</h3>
+                <p class="text-3xl font-bold text-slate-800" id="stat-uni">0</p>
+            </div>
+            <div class="corporate-card p-6 slide-up delay-200 border-l-4 border-l-[#64748B]">
+                <h3 class="text-slate-500 font-semibold text-xs mb-2 uppercase tracking-wider">Nivel Inglés Avanzado</h3>
+                <p class="text-3xl font-bold text-slate-800" id="stat-english">0%</p>
+            </div>
+            <div class="corporate-card p-6 slide-up delay-200 border-l-4 border-l-[#10B981]">
+                <h3 class="text-slate-500 font-semibold text-xs mb-2 uppercase tracking-wider">Con Experiencia</h3>
+                <p class="text-3xl font-bold text-slate-800" id="stat-exp">0%</p>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- Main Chart: Universities -->
+            <div class="corporate-card p-6 lg:col-span-2 slide-up delay-300">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                        Distribución por Universidad
+                    </h3>
+                    <span class="text-xs text-slate-400 font-medium bg-slate-100 px-2 py-1 rounded">Desliza para ver más</span>
+                </div>
+                <div class="w-full relative overflow-y-auto pr-2" style="max-height: 320px;">
+                    <div id="chart-uni-container" style="height: 320px; position: relative;">
+                        <canvas id="chart-uni"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Secondary Chart: English Level -->
+            <div class="corporate-card p-6 slide-up delay-300">
+                <h3 class="text-lg font-semibold text-slate-800 mb-6 flex items-center gap-2">
+                    Dominio del Inglés
+                </h3>
+                <div class="h-64 w-full relative flex justify-center">
+                    <canvas id="chart-english"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Charts -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="corporate-card p-6 slide-up">
+                <h3 class="text-base font-semibold text-slate-800 mb-4">Experiencia en Debates</h3>
+                <div class="h-56"><canvas id="chart-exp"></canvas></div>
+            </div>
+            <div class="corporate-card p-6 slide-up">
+                <h3 class="text-base font-semibold text-slate-800 mb-4">Distribución por Género</h3>
+                <div class="h-56"><canvas id="chart-gender"></canvas></div>
+            </div>
+        </div>
+
+        <div class="corporate-card p-6 slide-up mb-8">
+            <h3 class="text-lg font-semibold text-slate-800 mb-6 flex items-center gap-2">
+                Ciclo Académico
+            </h3>
+            <div class="h-72 w-full relative">
+                <canvas id="chart-cycle"></canvas>
+            </div>
+        </div>
+
+        <div class="corporate-card p-6 slide-up mb-8">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                    Carreras Profesionales
+                </h3>
+                <span class="text-xs text-slate-400 font-medium bg-slate-100 px-2 py-1 rounded">Desliza para ver más</span>
+            </div>
+            <div class="w-full relative overflow-y-auto pr-2" style="max-height: 320px;">
+                <div id="chart-major-container" style="height: 320px; position: relative;">
+                    <canvas id="chart-major"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Chart -->
+        <div class="corporate-card p-6 slide-up mb-8">
+            <h3 class="text-lg font-semibold text-slate-800 mb-6 flex items-center gap-2">
+                Mapa de Postulantes por Región (Sedes Universitarias)
+            </h3>
+            <div id="chart-map" class="w-full flex justify-center" style="height: 450px;"></div>
+            <p class="text-xs text-slate-400 mt-2 text-center">*Nota: Ciertas universidades operan en múltiples regiones. Temporalmente mapeadas a su sede central.</p>
+        </div>
+
+        <!-- Data Table -->
+        <div class="corporate-card overflow-hidden slide-up">
+            <div class="p-6 border-b border-slate-200 bg-white">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
+                    <h3 class="text-lg font-semibold text-slate-800">Directorio de Postulantes</h3>
+                    <div class="relative w-full md:w-auto">
+                        <svg class="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        <input type="text" id="search-input" placeholder="Búsqueda libre general..." class="pl-9 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#35B6B4] focus:ring-1 focus:ring-[#35B6B4] w-full md:w-80 transition-all text-slate-700">
+                    </div>
+                </div>
+                
+                <!-- Filtros combinados -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4" id="table-filters">
+                    <select id="filter-uni" class="w-full py-2 px-3 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#35B6B4] text-slate-600">
+                        <option value="">Todas las Universidades</option>
+                    </select>
+                    <select id="filter-major" class="w-full py-2 px-3 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#35B6B4] text-slate-600">
+                        <option value="">Todas las Carreras</option>
+                    </select>
+                    <select id="filter-cycle" class="w-full py-2 px-3 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#35B6B4] text-slate-600">
+                        <option value="">Todos los Ciclos</option>
+                    </select>
+                    <select id="filter-eng" class="w-full py-2 px-3 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#35B6B4] text-slate-600">
+                        <option value="">Todos Niveles de Inglés</option>
+                    </select>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left" id="data-table">
+                    <thead class="text-xs uppercase text-slate-500 bg-slate-50">
+                        <tr>
+                            <th class="px-6 py-4 font-semibold">Postulante</th>
+                            <th class="px-6 py-4 font-semibold">Universidad</th>
+                            <th class="px-6 py-4 font-semibold">Carrera</th>
+                            <th class="px-6 py-4 font-semibold">Ciclo</th>
+                            <th class="px-6 py-4 font-semibold">Nivel Inglés</th>
+                            <th class="px-6 py-4 font-semibold">Región</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm divide-y divide-slate-100" id="table-body">
+                        <!-- Rows populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-4 border-t border-slate-200 text-center text-sm text-slate-500 bg-slate-50">
+                Mostrando los primeros 100 resultados.
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- Script Logic -->
+    <script>
+        // Set up Drag and Drop
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+        });
+
+        dropZone.addEventListener('drop', handleDrop, false);
+        fileInput.addEventListener('change', handleFileSelect, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            handleFiles(files);
+        }
+
+        function handleFiles(files) {
+            if (files.length > 0) {
+                const file = files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    processData(workbook);
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        }
+
+        // Global variables
+        let charts = {};
+        window.rawExcelData = [];
+
+        // Auto-load excel si está publicado (ej. en GitHub Pages)
+        window.addEventListener('DOMContentLoaded', () => {
+            fetch('RESULTADOS_MAPEC.xlsx')
+                .then(response => {
+                    if(!response.ok) throw new Error("No hay archivo automático");
+                    return response.arrayBuffer();
+                })
+                .then(buffer => {
+                    const data = new Uint8Array(buffer);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    processData(workbook);
+                })
+                .catch(err => {
+                    console.log("No se encontró RESULTADOS_MAPEC.xlsx automático. Esperando carga manual del usuario.");
+                });
+        });
+
+        function getCol(row, keys) {
+            for (const key of Object.keys(row)) {
+                for (const k of keys) {
+                    if (key.toLowerCase().includes(k.toLowerCase())) return row[key];
+                }
+            }
+            return 'No especificado';
+        }
+
+        // --- Normalization Functions ---
+        function normalizeUniversity(val) {
+            if (!val || val === 'No especificado') return 'No especificado';
+            let s = String(val).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+            if (s === '.' || s === '-' || s === '') return 'No especificado';
+            
+            if (/unmsm|san marcos|mayor de san marcos/.test(s)) return 'Universidad Nacional Mayor de San Marcos (UNMSM)';
+            if (/unsaac|antonio abad|del cusco/.test(s)) return 'Universidad Nacional de San Antonio Abad del Cusco (UNSAAC)';
+            if (/pucp|catolica del peru|pontificia universidad catolica/.test(s)) return 'Pontificia Universidad Católica del Perú (PUCP)';
+            if (/upc|ciencias aplicadas|peruana de ciencias/.test(s)) return 'Universidad Peruana de Ciencias Aplicadas (UPC)';
+            if (/usmp|san martin|martin de porres/.test(s)) return 'Universidad de San Martín de Porres (USMP)';
+            if (/ulima|universidad de lima|u de lima/.test(s)) return 'Universidad de Lima (ULima)';
+            if (/pacifico|pacifcio|\bup\b|del pacifico/.test(s)) return 'Universidad del Pacífico (UP)';
+            if (/upch|cayetano/.test(s)) return 'Universidad Peruana Cayetano Heredia (UPCH)';
+            if (/usil|san ignacio/.test(s)) return 'Universidad San Ignacio de Loyola (USIL)';
+            if (/esan/.test(s)) return 'Universidad ESAN';
+            if (/utp|tecnologica del peru/.test(s)) return 'Universidad Tecnológica del Perú (UTP)';
+            if (/upao|antenor orrego/.test(s)) return 'Universidad Privada Antenor Orrego (UPAO)';
+            if (/unjbg|jorge basadre|basadre grohmann?/.test(s)) return 'Universidad Nacional Jorge Basadre Grohmann (UNJBG)';
+            if (/urp|ricardo palma/.test(s)) return 'Universidad Ricardo Palma (URP)';
+            if (/upn|privada del norte/.test(s)) return 'Universidad Privada del Norte (UPN)';
+            if (/unfv|villarreal|villareal/.test(s)) return 'Universidad Nacional Federico Villarreal (UNFV)';
+            if (/unac|del callao/.test(s)) return 'Universidad Nacional del Callao (UNAC)';
+            if (/\buni\b|nacional de ingenieria/.test(s)) return 'Universidad Nacional de Ingeniería (UNI)';
+            if (/unalm|agraria|la molina|lamolina/.test(s)) return 'Universidad Nacional Agraria La Molina (UNALM)';
+            if (/ucsur|cientifica del sur/.test(s)) return 'Universidad Científica del Sur (UCSUR)';
+            if (/udep|de piura/.test(s)) return 'Universidad de Piura (UDEP)';
+            if (/\bunsa\b|san agustin/.test(s)) return 'Universidad Nacional de San Agustín (UNSA)';
+            if (/ucsm|catolica de santa maria/.test(s)) return 'Universidad Católica de Santa María (UCSM)';
+            if (/uarm|antonio ruiz/.test(s)) return 'Universidad Antonio Ruiz de Montoya (UARM)';
+            if (/utec|ingenieria y tecnologia/.test(s)) return 'Universidad de Ingeniería y Tecnología (UTEC)';
+            if (/usjb|juan bautista/.test(s)) return 'Universidad Privada San Juan Bautista (UPSJB)';
+            if (/uigv|garcilaso/.test(s)) return 'Universidad Inca Garcilaso de la Vega (UIGV)';
+            if (/continental/.test(s)) return 'Universidad Continental (UC)';
+            if (/cientifica/.test(s)) return 'Universidad Científica del Sur (UCSUR)'; // fallback
+            
+            // Default: Title Case origin
+            return String(val).trim().replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+        }
+
+        function normalizeMajor(val) {
+            if (!val || val === 'No especificado') return 'No especificado';
+            let s = String(val).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+            if (s === '.' || s === '-' || s === '') return 'No especificado';
+            
+            // 1. Derecho (Agrupa Derecho y Ciencias Políticas, Derecho e Historia, etc.)
+            if (/derecho|dercho|abogacia/.test(s)) return 'Derecho';
+            
+            // 2. Ciencia Política (Agrupa Política, Filosofía y Economía, etc.)
+            if (/politica/.test(s)) return 'Ciencia Política';
+            
+            // 3. Contabilidad (Agrupa Contabilidad y Finanzas, Ciencias Contables, etc.)
+            if (/contabilidad|contable/.test(s)) return 'Contabilidad';
+            
+            // 4. Economía (Agrupa Economía y Negocios Internacionales, etc.)
+            if (/economia/.test(s)) return 'Economía';
+            
+            // 5. Administración de Negocios Internacionales (Agrupa variantes de Negocios Internacionales)
+            if (/negocios|international business/.test(s)) return 'Administración de Negocios Internacionales';
+            
+            // 6. Relaciones Internacionales
+            if (/relaciones internacionales|rrii/.test(s)) return 'Relaciones Internacionales';
+            
+            // 7. Administración (Agrupa Ciencias Administrativas, Administración de Empresas, etc.)
+            if (/admin|ciencias administrativas/.test(s)) return 'Administración';
+            
+            // 8-12. Ingenierías
+            if (/civil/.test(s)) return 'Ingeniería Civil';
+            if (/comercial/.test(s) && /ing/.test(s)) return 'Ingeniería Comercial';
+            if (/industrial/.test(s)) return 'Ingeniería Industrial';
+            if (/mecatronica/.test(s)) return 'Ingeniería Mecatrónica';
+            if (/gestion empresarial/.test(s)) return 'Ingeniería en Gestión Empresarial';
+            
+            // 13-20. Otras categorías
+            if (/comunicaci|comunicaciones/.test(s)) return 'Comunicaciones';
+            if (/farmacia|bioquimica/.test(s)) return 'Farmacia y Bioquímica';
+            if (/nutricion|dietetica/.test(s)) return 'Nutrición y Dietética';
+            if (/psicologia/.test(s)) return 'Psicología';
+            if (/sociologia/.test(s)) return 'Sociología';
+            if (/educacion|sociales.*cultural/.test(s)) return 'Educación, Ciencias Sociales y Promoción Socio Cultural';
+            if (/aeronautica/.test(s)) return 'Ciencias Aeronáuticas';
+            if (/presupuesto/.test(s)) return 'Presupuesto y Finanzas Públicas';
+
+            // Por defecto, dar formato Title Case si surge alguna nueva no mapeada en el futuro
+            let formatted = String(val).trim().replace(/\w\S*/g, function(txt){
+                return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+            });
+            return formatted;
+        }
+
+        function normalizeCycle(val) {
+            if (!val || val === 'No especificado') return 'No especificado';
+            let s = String(val).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+            if (s === '.' || s === '-' || s === '') return 'No especificado';
+            
+            if (/\b(1ero|primer|primero|1er|uno|1|i)\b/.test(s)) return '1';
+            if (/\b(2do|segundo|2|ii)\b/.test(s)) return '2';
+            if (/\b(3ero|3er|tercero|tercer|3|iii)\b/.test(s)) return '3';
+            if (/\b(4to|cuarto|4|iv)\b/.test(s)) return '4';
+            if (/\b(5to|quinto|5|v)\b/.test(s)) return '5';
+            if (/\b(6to|sexto|6|vi)\b/.test(s)) return '6';
+            if (/\b(7mo|septimo|setimo|7|vii)\b/.test(s)) return '7';
+            if (/\b(8vo|octavo|8|viii)\b/.test(s)) return '8';
+            if (/\b(9no|noveno|9|ix)\b/.test(s)) return '9';
+            if (/\b(10mo|decimo|10|x)\b/.test(s)) return '10';
+            if (/\b(11mo|undecimo|decimo primer|decimoprimer|once|11|xi)\b/.test(s)) return '11';
+            if (/\b(12mo|duodecimo|decimo segundo|decimosegundo|doce|12|xii)\b/.test(s)) return '12';
+            if (/egresado|graduado|bachiller|titulado/.test(s)) return 'Egresado';
+            
+            const match = s.match(/\d+/);
+            if(match) return match[0];
+            
+            return String(val).trim().replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+        }
+
+        function normalizeExperience(val) {
+            if (!val || val === 'No especificado') return 'No especificado';
+            let s = String(val).toLowerCase().trim();
+            if (/no|ningun|cero|nunca/.test(s)) return 'No';
+            if (/s[ií]|claro|por supuesto|obvio|experiencia|ya he/.test(s)) return 'Sí';
+            return 'Sí'; 
+        }
+
+        function normalizeSource(val) {
+            if (!val || val === 'No especificado') return 'No especificado';
+            let s = String(val).toLowerCase().trim();
+            if (/instagram|ig\b/.test(s)) return 'Instagram';
+            if (/facebook|fb\b/.test(s)) return 'Facebook';
+            if (/linkedin/.test(s)) return 'LinkedIn';
+            if (/tiktok/.test(s)) return 'TikTok';
+            if (/whatsapp|wsp/.test(s)) return 'WhatsApp';
+            if (/amig[oa]|compa[ñn]er[oa]|conocid[oa]|recomendad[oa]|boca a boca/.test(s)) return 'Recomendación';
+            if (/correo|email/.test(s)) return 'Correo Electrónico';
+            if (/universidad|profesor|docente|clase|facultad/.test(s)) return 'Universidad / Docente';
+            if (/internet|web|google|b[uú]squeda/.test(s)) return 'Página Web / Búsqueda';
+            if (/noticia|diario|peri[oó]dico|tv|radio/.test(s)) return 'Medios de Comunicación';
+            
+            return s.charAt(0).toUpperCase() + s.slice(1);
+        }
+        // --------------------------------
+
+        function processData(workbook) {
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const rawData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+            
+            if(rawData.length === 0) {
+                alert("El archivo parece estar vacío.");
+                return;
+            }
+            
+            window.rawExcelData = rawData; 
+
+            // Normalize and extract needed columns
+            const seenNames = new Set();
+            const data = [];
+            
+            rawData.forEach(row => {
+                let nombre = getCol(row, ["nombre(s)", "nombre "]) || "";
+                if(nombre === "No especificado") nombre = getCol(row, ["nombre"]) || "";
+                
+                let apellido = getCol(row, ["apellidos", "apellido"]) || "";
+                if(apellido === "No especificado") apellido = "";
+                
+                let fullName = (nombre + " " + apellido).trim();
+                if(fullName === "" || fullName === "No especificado No especificado") fullName = getCol(row, ["nombre"]);
+
+                // 1. Filtrar nombres vacíos, demasiado cortos o que sean pura puntuación (".", ". .")
+                if (!fullName || fullName.length <= 2 || /^[^a-zA-ZáéíóúÁÉÍÓÚñÑ]+$/.test(fullName) || fullName === "No especificado") {
+                    return; // Saltamos este registro porque no es un nombre válido
+                }
+                
+                // 2. Filtrar duplicados (ignorando mayúsculas y tildes para mayor seguridad)
+                let nameKey = fullName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+                if (seenNames.has(nameKey)) {
+                    return; // Saltamos este registro porque ya existe
+                }
+                seenNames.add(nameKey);
+
+                data.push({
+                    name: fullName,
+                    university: normalizeUniversity(getCol(row, ["universidad"])),
+                    major: normalizeMajor(getCol(row, ["carrera"])),
+                    cycle: normalizeCycle(getCol(row, ["ciclo", "semestre"])),
+                    english: getCol(row, ["inglés", "ingles"]), 
+                    gender: getCol(row, ["sexo", "género", "genero"]),
+                    experience: normalizeExperience(getCol(row, ["experiencia"]))
+                });
+            });
+
+            // Hide upload, show dashboard
+            document.getElementById('upload-screen').style.display = 'none';
+            const dashboard = document.getElementById('dashboard-screen');
+            dashboard.classList.remove('hidden');
+            
+            // Populate metrics
+            document.getElementById('stat-total').innerText = data.length;
+            
+            const unis = [...new Set(data.map(d => d.university))].filter(u => u !== "No especificado");
+            document.getElementById('stat-uni').innerText = unis.length;
+
+            const advancedEnglish = data.filter(d => {
+                const lvl = String(d.english).toLowerCase();
+                return lvl.includes('avanzado') || lvl.includes('fluido') || lvl.includes('nativo');
+            }).length;
+            document.getElementById('stat-english').innerText = Math.round((advancedEnglish / Math.max(data.length, 1)) * 100) + '%';
+
+            const withExp = data.filter(d => {
+                const exp = String(d.experience).toLowerCase();
+                return exp === 'sí' || exp === 'si' || exp.includes('true') || exp === 'yes';
+            }).length;
+            document.getElementById('stat-exp').innerText = Math.round((withExp / Math.max(data.length, 1)) * 100) + '%';
+
+            // Chart Configuration Base
+            Chart.defaults.color = '#64748B'; /* Slate 500 */
+            Chart.defaults.font.family = "'Inter', sans-serif";
+            
+            // Corporate Colors from Palette
+            const colorPrimary = '#35B6B4';
+            const colorSecondary = '#D7B369';
+            const colorTertiary = '#EFEBDB';
+            const colorDark = '#2D3748';
+            const colorAccent = '#475569';
+            
+            // 1. University Chart (Bar)
+            const uniCounts = {};
+            data.forEach(d => {
+                let u = String(d.university).trim();
+                if (u === "No especificado") return;
+                if(u.length > 50) u = u.substring(0, 50) + '...';
+                uniCounts[u] = (uniCounts[u] || 0) + 1;
+            });
+            const sortedUnis = Object.entries(uniCounts).sort((a, b) => b[1] - a[1]); // All universities
+            
+            // Dynamic height for University Chart
+            const reqHeight = Math.max(320, sortedUnis.length * 35);
+            document.getElementById('chart-uni-container').style.height = reqHeight + 'px';
+            
+            createChart('chart-uni', 'bar', {
+                labels: sortedUnis.map(u => u[0]),
+                datasets: [{
+                    label: 'Postulantes',
+                    data: sortedUnis.map(u => u[1]),
+                    backgroundColor: colorPrimary,
+                    borderRadius: 4
+                }]
+            }, {
+                indexAxis: 'y',
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
+            });
+
+            // 2. English Level (Doughnut)
+            const engCounts = {};
+            data.forEach(d => {
+                let e = String(d.english).trim();
+                if(!e || e.toLowerCase() === 'no especificado' || e === '.') return;
+                engCounts[e] = (engCounts[e] || 0) + 1;
+            });
+            createChart('chart-english', 'doughnut', {
+                labels: Object.keys(engCounts),
+                datasets: [{
+                    data: Object.values(engCounts),
+                    backgroundColor: [colorPrimary, colorSecondary, colorAccent, colorTertiary, colorDark],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    hoverOffset: 4
+                }]
+            }, {
+                cutout: '65%',
+                plugins: {
+                    legend: { position: 'bottom', labels: { padding: 20, color: '#475569', usePointStyle: true } }
+                }
+            });
+
+            // 3. Experience (Pie)
+            const expCounts = { 'Sí': 0, 'No': 0 };
+            data.forEach(d => {
+                const e = String(d.experience).toLowerCase();
+                if(e === 'no especificado' || e === '.') return;
+                if(e === 'sí' || e === 'si' || e === 'yes' || e === 'true') expCounts['Sí']++;
+                else expCounts['No']++;
+            });
+            createChart('chart-exp', 'pie', {
+                labels: Object.keys(expCounts),
+                datasets: [{
+                    data: Object.values(expCounts),
+                    backgroundColor: [colorPrimary, colorSecondary],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            }, { plugins: { legend: { position: 'bottom', labels: { color: '#475569', usePointStyle: true } } } });
+
+            // 4. Gender (Pie)
+            const genderCounts = {};
+            data.forEach(d => {
+                let g = String(d.gender).trim();
+                if(!g || g.toLowerCase() === 'no especificado' || g === '.') return;
+                genderCounts[g] = (genderCounts[g] || 0) + 1;
+            });
+            createChart('chart-gender', 'pie', {
+                labels: Object.keys(genderCounts),
+                datasets: [{
+                    data: Object.values(genderCounts),
+                    backgroundColor: [colorSecondary, colorPrimary, colorAccent, colorTertiary],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            }, { plugins: { legend: { position: 'bottom', labels: { color: '#475569', usePointStyle: true } } } });
+
+            // 5. Cycle (Bar)
+            const cycleCounts = {};
+            data.forEach(d => {
+                let c = String(d.cycle).trim();
+                if(!c || c.toLowerCase() === 'no especificado' || c === '.') return;
+                cycleCounts[c] = (cycleCounts[c] || 0) + 1;
+            });
+            
+            // Sort cycles numerically if possible
+            const sortedCycles = Object.entries(cycleCounts).sort((a, b) => {
+                const numA = parseInt(a[0]);
+                const numB = parseInt(b[0]);
+                if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+                return a[0].localeCompare(b[0]);
+            });
+
+            createChart('chart-cycle', 'bar', {
+                labels: sortedCycles.map(c => c[0]),
+                datasets: [{
+                    label: 'Ciclo',
+                    data: sortedCycles.map(c => c[1]),
+                    backgroundColor: colorSecondary,
+                    borderRadius: 4
+                }]
+            }, { plugins: { legend: { display: false } } });
+
+            // 6. Major (Horizontal Bar)
+            const majorCounts = {};
+            data.forEach(d => {
+                let m = String(d.major).trim();
+                if(!m || m.toLowerCase() === 'no especificado' || m === '.' || m === '-') return;
+                majorCounts[m] = (majorCounts[m] || 0) + 1;
+            });
+
+            const sortedMajors = Object.entries(majorCounts).sort((a, b) => b[1] - a[1]);
+            
+            // Dynamic height for Major Chart
+            const reqMajorHeight = Math.max(320, sortedMajors.length * 35);
+            document.getElementById('chart-major-container').style.height = reqMajorHeight + 'px';
+
+            createChart('chart-major', 'bar', {
+                labels: sortedMajors.map(m => m[0]),
+                datasets: [{
+                    label: 'Postulantes',
+                    data: sortedMajors.map(m => m[1]),
+                    backgroundColor: colorPrimary,
+                    borderRadius: 4
+                }]
+            }, { 
+                indexAxis: 'y',
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } } 
+            });
+
+            // Populate Table and Filters
+            window.allData = data;
+            populateFilters(data);
+            renderTable(data);
+            
+            // Search and Filter Functionality
+            const searchInput = document.getElementById('search-input');
+            const fUni = document.getElementById('filter-uni');
+            const fMajor = document.getElementById('filter-major');
+            const fCycle = document.getElementById('filter-cycle');
+            const fEng = document.getElementById('filter-eng');
+
+            const applyFilters = () => {
+                const term = searchInput.value.toLowerCase();
+                const valUni = fUni.value;
+                const valMajor = fMajor.value;
+                const valCycle = fCycle.value;
+                const valEng = fEng.value;
+
+                const filtered = window.allData.filter(d => {
+                    const regionName = getRegionForUniversity(d.university).name.toLowerCase();
+                    const matchSearch = term === '' || 
+                        d.name.toLowerCase().includes(term) || 
+                        d.university.toLowerCase().includes(term) ||
+                        d.major.toLowerCase().includes(term) ||
+                        d.english.toLowerCase().includes(term) ||
+                        String(d.cycle).toLowerCase() === term ||
+                        d.gender.toLowerCase().includes(term) ||
+                        regionName.includes(term);
+
+                    const matchUni = valUni === '' || d.university === valUni;
+                    const matchMajor = valMajor === '' || d.major === valMajor;
+                    const matchCycle = valCycle === '' || String(d.cycle) === valCycle;
+                    const matchEng = valEng === '' || d.english === valEng;
+
+                    return matchSearch && matchUni && matchMajor && matchCycle && matchEng;
+                });
+                renderTable(filtered);
+            };
+
+            searchInput.addEventListener('input', applyFilters);
+            fUni.addEventListener('change', applyFilters);
+            fMajor.addEventListener('change', applyFilters);
+            fCycle.addEventListener('change', applyFilters);
+            fEng.addEventListener('change', applyFilters);
+
+            // Map: Postulantes por Region
+            if (google.visualization && google.visualization.GeoChart) {
+                drawMap(data);
+            } else {
+                google.charts.setOnLoadCallback(() => drawMap(data));
+            }
+        }
+
+        function getRegionForUniversity(uni) {
+            // Sede Central Mapping
+            if (uni.includes('UNAC')) return { code: 'PE-CAL', name: 'Callao' };
+            if (uni.includes('UNSAAC') || uni.includes('Continental')) return { code: 'PE-CUS', name: 'Cusco' };
+            if (uni.includes('UNJBG')) return { code: 'PE-TAC', name: 'Tacna' };
+            if (uni.includes('UNSA') || uni.includes('UCSM')) return { code: 'PE-ARE', name: 'Arequipa' };
+            if (uni.includes('UPAO')) return { code: 'PE-LAL', name: 'La Libertad' };
+            
+            // Default a Lima (El departamento es PE-LIM en ISO 3166-2:PE)
+            return { code: 'PE-LIM', name: 'Lima' }; 
+        }
+
+        function populateFilters(data) {
+            const unis = [...new Set(data.map(d => d.university))].filter(Boolean).sort();
+            const majors = [...new Set(data.map(d => d.major))].filter(Boolean).sort();
+            const cycles = [...new Set(data.map(d => String(d.cycle)))].filter(Boolean).sort((a,b) => {
+                const numA = parseInt(a);
+                const numB = parseInt(b);
+                if(!isNaN(numA) && !isNaN(numB)) return numA - numB;
+                return a.localeCompare(b);
+            });
+            const engs = [...new Set(data.map(d => d.english))].filter(Boolean).sort();
+
+            const uniSel = document.getElementById('filter-uni');
+            const majorSel = document.getElementById('filter-major');
+            const cycleSel = document.getElementById('filter-cycle');
+            const engSel = document.getElementById('filter-eng');
+
+            uniSel.innerHTML = '<option value="">Todas las Universidades</option>';
+            majorSel.innerHTML = '<option value="">Todas las Carreras</option>';
+            cycleSel.innerHTML = '<option value="">Todos los Ciclos</option>';
+            engSel.innerHTML = '<option value="">Todos Niveles de Inglés</option>';
+
+            unis.forEach(u => { if(u !== 'No especificado') uniSel.insertAdjacentHTML('beforeend', `<option value="${u}">${u}</option>`) });
+            majors.forEach(m => { if(m !== 'No especificado') majorSel.insertAdjacentHTML('beforeend', `<option value="${m}">${m}</option>`) });
+            cycles.forEach(c => { if(c !== 'No especificado') cycleSel.insertAdjacentHTML('beforeend', `<option value="${c}">${c}</option>`) });
+            engs.forEach(e => { if(e !== 'No especificado') engSel.insertAdjacentHTML('beforeend', `<option value="${e}">${e}</option>`) });
+        }
+
+        function drawMap(data) {
+            const regionCounts = {};
+            data.forEach(d => {
+                let u = String(d.university).trim();
+                if (u === "No especificado") return;
+                const reg = getRegionForUniversity(u);
+                
+                if (!regionCounts[reg.code]) {
+                    regionCounts[reg.code] = { name: reg.name, count: 0 };
+                }
+                regionCounts[reg.code].count += 1;
+            });
+
+            const mapDataArray = [['Región', 'Postulantes']];
+            for (const [code, info] of Object.entries(regionCounts)) {
+                // Usamos {v: código_iso, f: nombre_bonito} para que el tooltip muestre el nombre legible
+                mapDataArray.push([{v: code, f: info.name}, info.count]);
+            }
+
+            const dataTable = google.visualization.arrayToDataTable(mapDataArray);
+
+            const options = {
+                region: 'PE',
+                displayMode: 'regions',
+                resolution: 'provinces',
+                colorAxis: {colors: ['#E6F6F6', '#35B6B4', '#1E6E6C']},
+                backgroundColor: 'transparent',
+                datalessRegionColor: '#F1F5F9',
+                defaultColor: '#F1F5F9',
+                keepAspectRatio: true
+            };
+
+            const chart = new google.visualization.GeoChart(document.getElementById('chart-map'));
+            chart.draw(dataTable, options);
+        }
+
+        function createChart(id, type, data, options) {
+            const ctx = document.getElementById(id).getContext('2d');
+            if(charts[id]) charts[id].destroy();
+            
+            // Add click-to-filter interaction
+            const enhancedOptions = Object.assign({
+                responsive: true,
+                maintainAspectRatio: false,
+                onClick: (e, elements, chart) => {
+                    if (elements && elements.length > 0) {
+                        const index = elements[0].index;
+                        const label = chart.data.labels[index];
+                        
+                        const searchInput = document.getElementById('search-input');
+                        searchInput.value = label;
+                        
+                        // Trigger search filter
+                        searchInput.dispatchEvent(new Event('input'));
+                        
+                        // Scroll down to the table
+                        document.getElementById('data-table').scrollIntoView({behavior: 'smooth', block: 'start'});
+                    }
+                }
+            }, options);
+
+            charts[id] = new Chart(ctx, {
+                type: type,
+                data: data,
+                options: enhancedOptions
+            });
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+            
+            const displayData = data.slice(0, 100); 
+            
+            displayData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = 'transition-colors';
+                
+                // Name
+                const tdName = document.createElement('td');
+                tdName.className = 'px-6 py-4 font-medium text-slate-800 whitespace-nowrap';
+                const initial = row.name && row.name !== "No especificado" ? row.name.charAt(0).toUpperCase() : '?';
+                tdName.innerHTML = `<div class="flex items-center"><div class="h-8 w-8 rounded-full bg-[#E6F6F6] flex items-center justify-center text-[#35B6B4] font-bold mr-3">${initial}</div>${row.name}</div>`;
+                
+                // Uni
+                const tdUni = document.createElement('td');
+                tdUni.className = 'px-6 py-4 text-slate-600';
+                tdUni.innerText = row.university;
+                
+                // Major
+                const tdMajor = document.createElement('td');
+                tdMajor.className = 'px-6 py-4 text-slate-600';
+                tdMajor.innerText = row.major;
+                
+                // Cycle
+                const tdCycle = document.createElement('td');
+                tdCycle.className = 'px-6 py-4 text-slate-600';
+                tdCycle.innerText = row.cycle;
+                
+                // English
+                const tdEng = document.createElement('td');
+                tdEng.className = 'px-6 py-4';
+                let engClass = 'bg-slate-100 text-slate-600';
+                const lvl = String(row.english).toLowerCase();
+                if(lvl.includes('avanzado') || lvl.includes('fluido')) engClass = 'bg-[#35B6B4]/10 text-[#2A9190]';
+                else if(lvl.includes('intermedio')) engClass = 'bg-[#D7B369]/10 text-[#B89650]';
+                else if(lvl.includes('básico') || lvl.includes('basico')) engClass = 'bg-slate-100 text-slate-500';
+                
+                tdEng.innerHTML = `<span class="px-3 py-1 rounded-full text-xs font-medium ${engClass}">${row.english}</span>`;
+                
+                // Region
+                const tdRegion = document.createElement('td');
+                tdRegion.className = 'px-6 py-4 text-slate-600';
+                tdRegion.innerText = getRegionForUniversity(row.university).name;
+                
+                tr.appendChild(tdName);
+                tr.appendChild(tdUni);
+                tr.appendChild(tdMajor);
+                tr.appendChild(tdCycle);
+                tr.appendChild(tdEng);
+                tr.appendChild(tdRegion);
+                
+                tbody.appendChild(tr);
+            });
+            
+            if(displayData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-slate-500">No se encontraron resultados</td></tr>`;
+            }
+        }
+
+        function exportCleanData() {
+            if (!window.rawExcelData || window.rawExcelData.length === 0) {
+                alert("No hay datos para exportar.");
+                return;
+            }
+
+            const cleanData = window.rawExcelData.map(row => {
+                let newRow = {...row};
+                for(let key of Object.keys(newRow)) {
+                    let k = key.toLowerCase();
+                    if(k.includes("universidad")) newRow[key] = normalizeUniversity(newRow[key]);
+                    else if(k.includes("carrera")) newRow[key] = normalizeMajor(newRow[key]);
+                    else if(k.includes("ciclo") || k.includes("semestre")) newRow[key] = normalizeCycle(newRow[key]);
+                    else if(k.includes("experiencia")) newRow[key] = normalizeExperience(newRow[key]);
+                    else if(k.includes("enteraste")) newRow[key] = normalizeSource(newRow[key]);
+                }
+                return newRow;
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(cleanData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Data Uniformizada");
+            
+            // Trigger download via SheetJS
+            XLSX.writeFile(workbook, "RESULTADOS_MAPEC_UNIFORMIZADOS.xlsx");
+        }
+    </script>
+</body>
+</html>
