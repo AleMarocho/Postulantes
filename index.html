@@ -404,6 +404,8 @@
             if (/utp|tecnologica del peru/.test(s)) return 'Universidad Tecnológica del Perú (UTP)';
             if (/upao|antenor orrego/.test(s)) return 'Universidad Privada Antenor Orrego (UPAO)';
             if (/unt|nacional de trujillo/.test(s)) return 'Universidad Nacional de Trujillo (UNT)';
+            if (/benedicto|catolica de trujillo/.test(s)) return 'Universidad Católica de Trujillo Benedicto XVI (UCT)';
+            if (/ruiz gallo|unprg/.test(s)) return 'Universidad Nacional Pedro Ruiz Gallo (UNPRG)';
             if (/ucv|cesar vallejo/.test(s)) return 'Universidad César Vallejo (UCV)';
             if (/unjbg|jorge basadre|basadre grohmann?/.test(s)) return 'Universidad Nacional Jorge Basadre Grohmann (UNJBG)';
             if (/urp|ricardo palma/.test(s)) return 'Universidad Ricardo Palma (URP)';
@@ -825,6 +827,7 @@
             if (uni.includes('UNJBG') || uni.includes('Tacna') || uni.includes('Tarapacá') || uni.includes('UPT') || uni.includes('UTA')) return { code: 'PE-TAC', name: 'Tacna' };
             if (uni.includes('UNSA') || uni.includes('UCSM')) return { code: 'PE-ARE', name: 'Arequipa' };
             if (uni.includes('UPAO') || uni.includes('UNT') || uni.includes('Trujillo')) return { code: 'PE-LAL', name: 'La Libertad' };
+            if (uni.includes('UNPRG') || uni.includes('Ruiz Gallo')) return { code: 'PE-LAM', name: 'Lambayeque' };
             
             // Default a Lima (El departamento es PE-LIM en ISO 3166-2:PE)
             return { code: 'PE-LIM', name: 'Lima' }; 
